@@ -1,0 +1,70 @@
+.inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: var(--player-padding);
+  padding-right: 0;
+  color: var(--color-secondary);
+  pointer-events: auto;
+  background: var(--color-primary);
+  border: var(--border-solid);
+  transition: filter 0.25s ease-in-out, scale 0.15s ease-in-out;
+  scale: 1;
+
+  &:hover {
+    filter: invert(1);
+    scale: 1.15;
+  }
+
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.container {
+  --player-padding: 0.62rem;
+  --player-waves-width: 3.125rem;
+  --player-waves-height: 1rem;
+
+  padding: var(--page-margin-l);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.25s ease-in-out, scale 0.25s ease-in-out;
+  scale: 1;
+
+  &:focus-within {
+    .inner {
+      filter: invert(1);
+      scale: 1.15;
+    }
+  }
+
+  @starting-style {
+    opacity: 0;
+    scale: 0.75;
+  }
+}
+
+.control {
+  display: block;
+  min-width: 5ch;
+  margin-right: var(--player-padding);
+  line-height: 1;
+  text-align: center;
+}
+
+.mask {
+  width: calc(var(--player-waves-width) + var(--player-padding));
+  height: var(--player-waves-height);
+  overflow: hidden;
+  transition: width 0.25s ease-in-out;
+
+  &[data-collapse="true"] {
+    width: 0;
+  }
+}
+
+.waves {
+  width: var(--player-waves-width);
+  height: var(--player-waves-height);
+}

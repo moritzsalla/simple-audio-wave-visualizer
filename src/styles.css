@@ -1,0 +1,13 @@
+.App {
+  font-family: sans-serif;
+  text-align: center;
+
+  --color-primary: white;
+  --color-secondary: black;
+  --border-solid: 1px solid currentColor;
+}
+
+button {
+  all: unset;
+  cursor: pointer;
+}
