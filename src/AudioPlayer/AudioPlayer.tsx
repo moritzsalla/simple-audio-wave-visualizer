@@ -2,83 +2,86 @@ import { useEffect, useRef, useState } from "react";
 
 import styles from "./AudioPlayer.module.css";
 
-export type AudioEventCallback = (context: {
-  audioElement: HTMLAudioElement;
-}) => void;
+type AudioCtx = { audioElement: HTMLAudioElement };
+
+export type AudioEventCallback = (context: AudioCtx) => void;
+
+type PlayerState = {
+	isPaused: boolean;
+	isLooping: boolean;
+};
 
 type AudioPlayerProps = {
-  src: string;
-  loop?: boolean;
-  className?: string;
-  children?: (playerState: {
-    isPaused: boolean;
-    isLooping: boolean;
-  }) => React.ReactNode;
-  onPlay?: AudioEventCallback;
-  onPause?: AudioEventCallback;
+	src: string;
+	loop?: boolean;
+	className?: string;
+	children?: (playerState: PlayerState) => React.ReactNode;
+	onPlay?: AudioEventCallback;
+	onPause?: AudioEventCallback;
 };
 
 export const AudioPlayer = ({
-  src,
-  loop = true,
-  className,
-  children,
-  onPlay,
-  onPause,
+	src,
+	loop = true,
+	className,
+	children,
+	onPlay,
+	onPause,
 }: AudioPlayerProps) => {
-  const [isPaused, setIsPaused] = useState(true);
-  const audioRef = useRef<HTMLAudioElement>(null);
+	const [isPaused, setIsPaused] = useState(true);
+	const audioRef = useRef<HTMLAudioElement>(null);
 
-  const togglePlayPause = () => {
-    const audioElement = audioRef.current;
-    if (!audioElement) {
-      console.error("Audio element not found.");
-      return;
-    }
+	const togglePlayPause = () => {
+		const audioElement = audioRef.current;
+		if (!audioElement) {
+			console.error("Audio element not found.");
+			return;
+		}
 
-    if (isPaused) {
-      audioElement
-        .play()
-        .then(() => {
-          onPlay?.({ audioElement });
-          setIsPaused(false);
-        })
-        .catch((error) => {
-          console.error("Failed to start audio playback:", error);
-        });
-    } else {
-      onPause?.({ audioElement });
-      setIsPaused(true);
-      audioElement.pause();
-    }
-  };
+		if (isPaused) {
+			audioElement
+				.play()
+				.then(() => {
+					onPlay?.({ audioElement });
+					setIsPaused(false);
+				})
+				.catch((error) => {
+					console.error("Failed to start audio playback:", error);
+				});
+		} else {
+			onPause?.({ audioElement });
+			setIsPaused(true);
+			audioElement.pause();
+		}
+	};
 
-  // Cleanup
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    return () => {
-      audio.pause();
-    };
-  }, []);
+	// Cleanup
+	useEffect(() => {
+		const audio = audioRef.current;
+		if (!audio) return;
 
-  return (
-    <>
-      <audio ref={audioRef} src={src} loop={loop} className={styles.audio} />
-      <button
-        type="button"
-        // Announce to screen readers
-        aria-live="polite"
-        role="switch"
-        aria-checked={!isPaused}
-        // First tab stop
-        tabIndex={1}
-        onClick={togglePlayPause}
-        className={className}
-      >
-        {children?.({ isPaused, isLooping: loop }) ??
-          (isPaused ? "Play" : "Pause")}
-      </button>
-    </>
-  );
+		return () => {
+			audio.pause();
+		};
+	}, []);
+
+	const childrenEl =
+		children?.({ isPaused, isLooping: loop }) ?? (isPaused ? "Play" : "Pause");
+
+	return (
+		<>
+			<audio ref={audioRef} src={src} loop={loop} className={styles.audio} />
+			<button
+				type="button"
+				aria-live="polite" // Announce to screen readers
+				role="switch"
+				aria-checked={!isPaused}
+				tabIndex={1} // First tab stop
+				onClick={togglePlayPause}
+				className={className}
+			>
+				{childrenEl}
+			</button>
+		</>
+	);
 };

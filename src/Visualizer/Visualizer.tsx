@@ -1,140 +1,147 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./Visualizer.module.css";
 import { AudioEventCallback, AudioPlayer } from "../AudioPlayer/AudioPlayer";
 import { getCssVariable } from "../utils";
 
-const LINE_THICKNESS_SCALAR = 0.15;
-const LINE_COLOR_VARIABLE = "--color-secondary";
-const LINE_SPACING = 30;
-const PLAY_LABEL = "Play";
-const PAUSE_LABEL = "Pause";
+const CONFIG = {
+	LINE_APPEARANCE: {
+		THICKNESS: 0.15,
+		SPACING: 30,
+		COLOR: "--color-secondary",
+	},
+	LABELS: {
+		PLAY: "Play",
+		PAUSE: "Pause",
+	},
+} as const;
 
 declare global {
-  interface Window {
-    webkitAudioContext: typeof AudioContext;
-  }
+	interface Window {
+		webkitAudioContext: typeof AudioContext;
+	}
 }
 
 export type VisualizerProps = {
-  src: string;
+	src: string;
 };
 
 export const Visualizer = ({ src }: VisualizerProps) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const audioContextRef = useRef<AudioContext | null>(null);
 
-  const [isCollapsed, setIsCollapsed] = useState(true);
+	const analyserRef = useRef<AnalyserNode | null>(null);
+	const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+	const animationFrameRef = useRef<number | null>(null);
 
-  const handleAudioPlay: AudioEventCallback = ({ audioElement }) => {
-    setIsCollapsed(false);
+	const [isCollapsed, setIsCollapsed] = useState(true);
 
-    // Initialize Web Audio API
-    if (!audioContextRef.current) {
-      const audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
-      audioContextRef.current = audioContext;
+	const handleAudioPlay: AudioEventCallback = ({ audioElement }) => {
+		setIsCollapsed(false);
 
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      analyserRef.current = analyser;
+		// Initialize Web Audio API
+		if (!audioContextRef.current) {
+			const audioContext = new (window.AudioContext ||
+				window.webkitAudioContext)();
+			audioContextRef.current = audioContext;
 
-      const source = audioContext.createMediaElementSource(audioElement);
-      source.connect(analyser);
-      analyser.connect(audioContext.destination);
+			const analyser = audioContext.createAnalyser();
+			analyser.fftSize = 256;
+			analyserRef.current = analyser;
 
-      sourceRef.current = source;
-    }
+			const source = audioContext.createMediaElementSource(audioElement);
+			source.connect(analyser);
+			analyser.connect(audioContext.destination);
 
-    const draw = () => {
-      if (!analyserRef.current || !canvasRef.current) return;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+			sourceRef.current = source;
+		}
 
-      // Buffer length is hard coded to yield 11 lines.
-      // (Amount of lines == buffer items)
-      // You can uncomment the following line to get the actual buffer length.
-      // const bufferLength = analyserRef.current.frequencyBinCount;
-      const bufferLength = 11;
-      const dataArray = new Uint8Array(bufferLength);
+		const draw = () => {
+			if (!analyserRef.current || !canvasRef.current) return;
+			const canvas = canvasRef.current;
+			const ctx = canvas.getContext("2d");
+			if (!ctx) return;
 
-      analyserRef.current.getByteFrequencyData(dataArray);
+			// Buffer length is hard coded to yield 11 lines.
+			// (Amount of lines == buffer items)
+			// You can uncomment the following line to get the actual buffer length.
+			// const bufferLength = analyserRef.current.frequencyBinCount;
+			const bufferLength = 11;
+			const dataArray = new Uint8Array(bufferLength);
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Enable anti-aliasing
-      ctx.imageSmoothingEnabled = true;
+			analyserRef.current.getByteFrequencyData(dataArray);
 
-      const barWidth = (canvas.width / bufferLength) * LINE_THICKNESS_SCALAR;
-      let barHeight = 0,
-        x = 0;
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			// Enable anti-aliasing
+			ctx.imageSmoothingEnabled = true;
 
-      for (let i = 0; i < bufferLength; i++) {
-        barHeight = Math.floor((dataArray[i] ?? 0) / 2);
-        const x0 = x;
-        const x1 = barWidth;
-        const y0 = canvas.height / 2 - barHeight / 2;
-        const y1 = barHeight;
-        ctx.fillStyle = getCssVariable(LINE_COLOR_VARIABLE) ?? "rgb(0, 0, 0)";
-        ctx.fillRect(x0, y0, x1, y1);
-        x += barWidth + LINE_SPACING;
-      }
+			const barWidth =
+				(canvas.width / bufferLength) * CONFIG.LINE_APPEARANCE.THICKNESS;
+			let barHeight = 0,
+				x = 0;
 
-      animationFrameRef.current = requestAnimationFrame(draw);
-    };
-    animationFrameRef.current = requestAnimationFrame(draw);
-  };
+			for (let i = 0; i < bufferLength; i++) {
+				barHeight = Math.floor((dataArray[i] ?? 0) / 2);
+				const x0 = x;
+				const x1 = barWidth;
+				const y0 = canvas.height / 2 - barHeight / 2;
+				const y1 = barHeight;
+				ctx.fillStyle =
+					getCssVariable(CONFIG.LINE_APPEARANCE.COLOR) ?? "rgb(0, 0, 0)";
+				ctx.fillRect(x0, y0, x1, y1);
+				x += barWidth + CONFIG.LINE_APPEARANCE.SPACING;
+			}
 
-  const handleAudioPause: AudioEventCallback = () => {
-    setIsCollapsed(true);
+			animationFrameRef.current = requestAnimationFrame(draw);
+		};
+		animationFrameRef.current = requestAnimationFrame(draw);
+	};
 
-    if (animationFrameRef.current)
-      cancelAnimationFrame(animationFrameRef.current);
-  };
+	const handleAudioPause: AudioEventCallback = () => {
+		setIsCollapsed(true);
 
-  // Cleanup
-  useEffect(() => {
-    const animationFrame = animationFrameRef.current;
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
-    };
-  }, []);
+		if (animationFrameRef.current)
+			cancelAnimationFrame(animationFrameRef.current);
+	};
 
-  return (
-    <div className={styles.container}>
-      <AudioPlayer
-        src={src}
-        onPlay={handleAudioPlay}
-        onPause={handleAudioPause}
-      >
-        {({ isPaused }) => (
-          <div className={styles.inner}>
-            <span
-              className={styles.control}
-              style={{
-                // Persistent label width
-                minWidth: `max(${PLAY_LABEL.length}ch, ${PAUSE_LABEL.length}ch)`,
-              }}
-            >
-              {isPaused ? PLAY_LABEL : PAUSE_LABEL}
-            </span>
-            <div className={styles.mask} data-collapse={isCollapsed}>
-              <canvas ref={canvasRef} className={styles.waves} />
-            </div>
-          </div>
-        )}
-      </AudioPlayer>
-    </div>
-  );
+	// Cleanup
+	useEffect(() => {
+		const animationFrame = animationFrameRef.current;
+		return () => {
+			if (audioContextRef.current) {
+				audioContextRef.current.close();
+				audioContextRef.current = null;
+			}
+			if (animationFrame) {
+				cancelAnimationFrame(animationFrame);
+			}
+		};
+	}, []);
+
+	return (
+		<div className={styles.container}>
+			<AudioPlayer
+				src={src}
+				onPlay={handleAudioPlay}
+				onPause={handleAudioPause}
+			>
+				{({ isPaused }) => (
+					<div className={styles.inner}>
+						<span
+							className={styles.control}
+							style={{
+								// Persistent label width
+								minWidth: `max(${CONFIG.LABELS.PLAY.length}ch, ${CONFIG.LABELS.PAUSE.length}ch)`,
+							}}
+						>
+							{isPaused ? CONFIG.LABELS.PLAY : CONFIG.LABELS.PAUSE}
+						</span>
+						<div className={styles.mask} data-collapse={isCollapsed}>
+							<canvas ref={canvasRef} className={styles.waves} />
+						</div>
+					</div>
+				)}
+			</AudioPlayer>
+		</div>
+	);
 };
