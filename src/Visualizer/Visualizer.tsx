@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import styles from "./Visualizer.module.scss";
+import styles from "./Visualizer.module.css";
 import { AudioEventCallback, AudioPlayer } from "../AudioPlayer/AudioPlayer";
 import { getCssVariable } from "../utils";
 

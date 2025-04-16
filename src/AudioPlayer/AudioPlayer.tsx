@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import styles from "./AudioPlayer.module.scss";
+import styles from "./AudioPlayer.module.css";
 
 export type AudioEventCallback = (context: {
   audioElement: HTMLAudioElement;
